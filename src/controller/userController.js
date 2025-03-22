@@ -17,40 +17,40 @@ const registerUser = async function (req, res) {
 
 
         if (!isValidRequest(userDetails)) {
-            return res.status(400).send({ status: false, msg: "Please enter details for user registration." })
+            return res.status(400).send({ response: { error: true, msg: "Please enter details for user registration." } })
         }
 
         if (!isValid(email)) {
-            return res.status(400).send({ status: false, msg: "Please enter email for registration." })
+            return res.status(400).send({ response: { error: true, msg: "Please enter email for registration." } })
         }
 
         if (!isValidMail(email)) {
-            return res.status(400).send({ status: false, msg: "Please enter a valid email address." })
+            return res.status(400).send({ response: { error: true, msg: "Please enter a valid email address." } })
         }
 
         let mailCheck = await userModel.findOne({ email });
 
         if (mailCheck) {
-            return res.status(400).send({ status: false, msg: `${email} already registered, try new.` })
+            return res.status(400).send({ response: { error: true, msg: `${email} already registered, try new.` } })
         }
 
         if (!phone) {
-            return res.status(400).send({ status: false, msg: "Please enter phone number for registration" })
+            return res.status(400).send({ response: { error: true, msg: "Please enter phone number for registration" } })
         }
         if (!isValidMobile(phone)) {
-            return res.status(400).send({ status: false, msg: "Please enter a valid Indian number." })
+            return res.status(400).send({ response: { error: true, msg: "Please enter a valid Indian number." } })
         }
 
         let phoneCheck = await userModel.findOne({ phone })
         if (phoneCheck) {
-            return res.status(400).send({ status: false, msg: `${phone} already registered, try new.` })
+            return res.status(400).send({ response: { error: true, msg: `${phone} already registered, try new.` } })
         }
 
         if (!password) {
-            return res.status(400).send({ status: false, msg: "Please enter a strong password for registration." })
+            return res.status(400).send({ response: { error: true, msg: "Please enter a strong password for registration." } })
         }
         if (!isValidPassword(password)) {
-            return res.status(400).send({ status: false, msg: "Please enter a password which contains min 8 and maximum 15 letters." })
+            return res.status(400).send({ response: { error: true, msg: "Please enter a password which contains min 8 and maximum 15 letters." } })
         }
         if (password) {
             const salt = await bcrypt.genSalt(10)
@@ -62,43 +62,12 @@ const registerUser = async function (req, res) {
 
         let createUser = await userModel.create(responseBody);
 
-        return res.status(201).send({ status: true, message: "User created successfully.", data: createUser })
+        return res.status(201).send({ response: { error: false, msg: "User registered successfully.", data: createUser } })
     }
     catch (err) {
-        res.status(500).send({ status: false, msg: err.message })
+        res.status(500).send({ error: true, msg: err.message })
     }
 };
-
-
-// user phone number verification
-const userVerify = async function (req, res) {
-    try {
-        let userDetails = req.body.data;
-        let { phone } = userDetails;
-
-        if (!phone) {
-            return res.status(400).send({ status: false, msg: "Please enter phone number for registration" })
-        }
-
-        if (!isValidMobile(phone)) {
-            return res.status(400).send({ status: false, msg: "Please enter a valid Indian number." })
-        }
-
-        let phoneCheck = await userModel.findOne({ phone })
-        if (!phoneCheck) {
-            return res.status(400).send({ status: false, msg: `${phone} is not registered with us.` })
-        }
-
-        let obj = { isVerifiedPhone: true };
-
-        let updateProfileDetails = await userModel.findOneAndUpdate({ phone: phone }, { $set: obj }, { new: true });
-
-        return res.status(201).send({ status: true, message: "Phone Verified successfully", data: updateProfileDetails });
-    }
-    catch (err) {
-        res.status(500).send({ status: false, msg: err.message })
-    }
-}
 
 
 //================================================userlogin================================================//
@@ -108,31 +77,31 @@ const userLogin = async function (req, res) {
         let data = req.body.data;
 
         if (!isValidRequest(data)) {
-            return res.status(400).send({ status: false, message: "Invalid Request" })
+            return res.status(400).send({ response: { error: true, msg: "Invalid Request" } })
         }
 
         let { email, password } = data;
 
         if (!isValid(email)) {
-            return res.status(400).send({ status: false, message: "email is required" })
+            return res.status(400).send({ response: { error: true, msg: "email is required" } })
         }
 
         if (!isValid(password)) {
-            return res.status(400).send({ status: false, message: "password is required" })
+            return res.status(400).send({ response: { error: true, msg: "password is required" } })
         }
 
         if (!isValidMail(email)) {
-            return res.status(400).send({ status: false, message: "Please enter a valid email" })
+            return res.status(400).send({ response: { error: true, msg: "Please enter a valid email" } })
         }
 
         if (!isValidPassword(password)) {
-            return res.status(400).send({ status: false, msg: "Please enter a password which contains min 8 and maximum 15 " })
+            return res.status(400).send({ response: { error: true, msg: "Please enter a password which contains min 8 and maximum 15 " } })
         }
 
         const loginUser = await userModel.findOne({ email: email });
 
         if (!loginUser) {
-            return res.status(401).send({ status: false, message: "Not register email-id" });
+            return res.status(401).send({ response: { error: true, msg: "Not register email-id" } });
         }
 
         let hashedpass = loginUser.password;
@@ -140,7 +109,7 @@ const userLogin = async function (req, res) {
         const validpass = await bcrypt.compare(password, hashedpass);
 
         if (!validpass) {
-            return res.status(401).send({ status: false, message: "Incorrect Password" })
+            return res.status(401).send({ response: { error: true, msg: "Incorrect Password" } })
         }
 
         let token = jwt.sign(
@@ -151,12 +120,13 @@ const userLogin = async function (req, res) {
         );
 
         res.setHeader("x-api-key", token);
-        let dataToBeSend = { usedId: loginUser._id, token: { token } };
-        res.status(200).send({ status: true, message: 'User login successfull', data: dataToBeSend });
 
+        let userDetails = { email: loginUser['email'], phone: loginUser['phone'], userId: loginUser['_id'] };
+        // let dataToBeSend = { usedId: loginUser._id, token: { token }, userDetails: loginUser };
+        res.status(200).send({ response: { error: false, msg: 'User login successful', token: token, data: userDetails } });
     }
     catch (err) {
-        res.status(500).send({ status: false, message: err.message })
+        res.status(500).send({ response: { error: true, msg: err.message } })
     }
 }
 
@@ -165,21 +135,19 @@ const userLogin = async function (req, res) {
 
 const getUserList = async function (req, res) {
     try {
-
-        let userList = await userModel.find();
+        let userList = await userModel.find().select('-password -_id -__v').sort({ createdAt: -1 });;
 
         if (!userList || userList.length <= 0) {
-            return res.status(404).send({ status: false, message: "No User Found" });
+            return res.status(404).send({ response: { error: true, msg: "No User Found" } });
         }
-        //-------------------------------------checking Authorizaton------------------------->>
 
-        res.status(200).send({ status: true, message: "User fetched successfully", data: userList })
+        res.status(200).send({ response: { error: false, msg: "User fetched successfully", data: userList } })
 
     }
     catch (err) {
-        res.status(500).send({ status: false, message: err.message })
+        res.status(500).send({ response: { status: false, msg: err.message } })
     }
 };
 
 
-module.exports = { registerUser, userLogin, getUserList, userVerify }
+module.exports = { registerUser, userLogin, getUserList };

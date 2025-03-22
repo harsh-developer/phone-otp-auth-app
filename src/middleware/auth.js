@@ -17,9 +17,9 @@ const authentication = async function (req, res, next) {
         jwt.verify(token, process.env.JWT_SECRET, function (err, decodedtoken) {
             if (err) {
                 if (err.name === "TokenExpiredError") {
-                    return res.status(401).send({ status: false, message: "Token has expired. Please log in again." });
+                    return res.status(401).send({ response: { error: true, msg: "Token has expired. Please log in again." } });
                 }
-                return res.status(400).send({ status: false, message: err.message })
+                return res.status(400).send({ response: { error: true, msg: err.message } })
             }
             else {
                 idFromToken = decodedtoken.userId;
@@ -28,7 +28,7 @@ const authentication = async function (req, res, next) {
         });
     }
     catch (err) {
-        return res.status(500).send({ status: false, message: err.message })
+        return res.status(500).send({ response: { error: true, msg: err.message } })
     }
 };
 
